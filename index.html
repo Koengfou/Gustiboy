@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Smiley Game - Game Over + Score</title>
+  <title>Smiley vs Lachende Kakskes</title>
   <style>
     html, body {
       margin: 0;
@@ -20,165 +20,169 @@
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="800" height="600"></canvas>
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
 
-    const keys = {};
-    document.addEventListener("keydown", e => keys[e.key] = true);
-    document.addEventListener("keyup", e => keys[e.key] = false);
+  const keys = {};
+  document.addEventListener("keydown", e => keys[e.key] = true);
+  document.addEventListener("keyup", e => keys[e.key] = false);
 
-    const player = {
-      x: canvas.width / 2 - 20,
-      y: canvas.height - 60,
-      width: 40,
-      height: 40,
-      speed: 3,
-      verticalSpeed: 1,
-      emoji: "😊"
-    };
+  const SMILEY_SIZE = 40;
 
-    const obstacles = [];
-    let score = 0;
-    let scoreTimer;
-    let gameOver = false;
+  const player = {
+    x: canvas.width / 2 - SMILEY_SIZE / 2,
+    y: canvas.height - SMILEY_SIZE * 1.5,
+    width: SMILEY_SIZE,
+    height: SMILEY_SIZE,
+    speed: 3,
+    verticalSpeed: 1,
+    emoji: "😊"
+  };
 
-    const centerCircle = {
-      x: canvas.width / 2,
-      y: canvas.height / 2,
-      radius: 50
-    };
+  const poopObstacles = [];
+  let score = 0;
+  let scoreTimer;
+  let gameOver = false;
 
-    function resetGame() {
-      obstacles.length = 0;
-      player.x = canvas.width / 2 - 20;
-      player.y = canvas.height - 60;
-      score = 0;
-      gameOver = false;
-      startScoreTimer();
-      gameLoop();
+  const centerCircle = {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    radius: 50
+  };
+
+  function resetGame() {
+    poopObstacles.length = 0;
+    player.x = canvas.width / 2 - player.width / 2;
+    player.y = canvas.height - player.height * 1.5;
+    score = 0;
+    gameOver = false;
+    startScoreTimer();
+    gameLoop();
+  }
+
+  function startScoreTimer() {
+    clearInterval(scoreTimer);
+    scoreTimer = setInterval(() => {
+      if (!gameOver) score++;
+    }, 1000);
+  }
+
+  function spawnPoopObstacle() {
+    const scale = Math.random() * 2 + 1; // schaal 1–3
+    const size = SMILEY_SIZE * scale;
+    const x = Math.random() * (canvas.width - size);
+    const y = Math.random() * ((canvas.height * 0.75) - size);
+    poopObstacles.push({ x, y, size, emoji: "💩" });
+  }
+
+  function movePlayer() {
+    if (keys["ArrowLeft"] || keys["a"]) player.x -= player.speed;
+    if (keys["ArrowRight"] || keys["d"]) player.x += player.speed;
+
+    player.y -= player.verticalSpeed;
+
+    if (player.y + player.height < 0) {
+      player.y = canvas.height;
+      player.x = Math.random() * (canvas.width - player.width);
+      const toSpawn = Math.floor(Math.random() * 2) + 1;
+      for (let i = 0; i < toSpawn; i++) spawnPoopObstacle();
     }
 
-    function startScoreTimer() {
-      clearInterval(scoreTimer);
-      scoreTimer = setInterval(() => {
-        if (!gameOver) score++;
-      }, 1000);
+    if (player.x < 0) player.x = 0;
+    if (player.x + player.width > canvas.width)
+      player.x = canvas.width - player.width;
+  }
+
+  function drawPlayer() {
+    ctx.font = "32px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(player.emoji, player.x + player.width / 2, player.y + player.height / 2);
+  }
+
+  function drawPoopObstacles() {
+    for (const o of poopObstacles) {
+      ctx.font = `${o.size}px Arial`;
+      ctx.fillText(o.emoji, o.x + o.size / 2, o.y + o.size / 2);
     }
+  }
 
-    function spawnObstacle() {
-      const radius = Math.random() * 100 + 40;
-      const x = Math.random() * (canvas.width - radius * 2) + radius;
-      const y = Math.random() * (canvas.height / 2);
-      obstacles.push({ x, y, radius });
-    }
+  function drawScoreCircle() {
+    ctx.beginPath();
+    ctx.fillStyle = "red";
+    ctx.arc(centerCircle.x, centerCircle.y, centerCircle.radius, 0, Math.PI * 2);
+    ctx.fill();
 
-    function movePlayer() {
-      if (keys["ArrowLeft"] || keys["a"]) player.x -= player.speed;
-      if (keys["ArrowRight"] || keys["d"]) player.x += player.speed;
+    ctx.fillStyle = "white";
+    ctx.font = "24px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(score, centerCircle.x, centerCircle.y);
+  }
 
-      player.y -= player.verticalSpeed;
+  function checkCollisionWithCircle(circle) {
+    const dx = (player.x + player.width / 2) - circle.x;
+    const dy = (player.y + player.height / 2) - circle.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    return distance < circle.radius + player.width / 2;
+  }
 
-      if (player.y + player.height < 0) {
-        player.y = canvas.height;
-        player.x = Math.random() * (canvas.width - player.width);
-        const toSpawn = Math.floor(Math.random() * 2) + 1;
-        for (let i = 0; i < toSpawn; i++) spawnObstacle();
-      }
-
-      if (player.x < 0) player.x = 0;
-      if (player.x + player.width > canvas.width)
-        player.x = canvas.width - player.width;
-    }
-
-    function drawPlayer() {
-      ctx.font = "32px Arial";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(player.emoji, player.x + player.width / 2, player.y + player.height / 2);
-    }
-
-    function drawObstacles() {
-      for (const o of obstacles) {
-        ctx.beginPath();
-        ctx.fillStyle = "red";
-        ctx.arc(o.x, o.y, o.radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    function drawScoreCircle() {
-      ctx.beginPath();
-      ctx.fillStyle = "red";
-      ctx.arc(centerCircle.x, centerCircle.y, centerCircle.radius, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "white";
-      ctx.font = "24px Arial";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(score, centerCircle.x, centerCircle.y);
-    }
-
-    function checkCollisionWithCircle(circle) {
-      const dx = (player.x + player.width / 2) - circle.x;
-      const dy = (player.y + player.height / 2) - circle.y;
+  function checkCollisions() {
+    for (const o of poopObstacles) {
+      const dx = (player.x + player.width / 2) - (o.x + o.size / 2);
+      const dy = (player.y + player.height / 2) - (o.y + o.size / 2);
       const distance = Math.sqrt(dx * dx + dy * dy);
-      return distance < circle.radius + player.width / 2;
+      if (distance < o.size / 2 + player.width / 2) return true;
+    }
+    if (checkCollisionWithCircle(centerCircle)) return true;
+    return false;
+  }
+
+  function showGameOver() {
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "white";
+    ctx.font = "40px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("💀 Game Over", canvas.width / 2, canvas.height / 2 - 40);
+    ctx.font = "24px Arial";
+    ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2);
+    ctx.fillText("Druk op ENTER om opnieuw te spelen", canvas.width / 2, canvas.height / 2 + 40);
+  }
+
+  document.addEventListener("keydown", e => {
+    if (gameOver && e.key === "Enter") {
+      resetGame();
+    }
+  });
+
+  function gameLoop() {
+    if (gameOver) {
+      showGameOver();
+      return;
     }
 
-    function checkCollisions() {
-      for (const o of obstacles) {
-        if (checkCollisionWithCircle(o)) return true;
-      }
-      if (checkCollisionWithCircle(centerCircle)) return true;
-      return false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    movePlayer();
+    if (checkCollisions()) {
+      gameOver = true;
+      clearInterval(scoreTimer);
+      showGameOver();
+      return;
     }
 
-    function showGameOver() {
-      ctx.fillStyle = "rgba(0,0,0,0.6)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    drawPoopObstacles();
+    drawScoreCircle();
+    drawPlayer();
 
-      ctx.fillStyle = "white";
-      ctx.font = "40px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("💀 Game Over", canvas.width / 2, canvas.height / 2 - 40);
-      ctx.font = "24px Arial";
-      ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2);
-      ctx.fillText("Druk op ENTER om opnieuw te spelen", canvas.width / 2, canvas.height / 2 + 40);
-    }
+    requestAnimationFrame(gameLoop);
+  }
 
-    document.addEventListener("keydown", e => {
-      if (gameOver && e.key === "Enter") {
-        resetGame();
-      }
-    });
-
-    function gameLoop() {
-      if (gameOver) {
-        showGameOver();
-        return;
-      }
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      movePlayer();
-      if (checkCollisions()) {
-        gameOver = true;
-        clearInterval(scoreTimer);
-        showGameOver();
-        return;
-      }
-
-      drawObstacles();
-      drawScoreCircle();
-      drawPlayer();
-
-      requestAnimationFrame(gameLoop);
-    }
-
-    resetGame();
-  </script>
+  resetGame();
+</script>
 </body>
 </html>
