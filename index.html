@@ -43,29 +43,38 @@ const centerCircle={x:canvas.width/2,y:canvas.height/2,radius:50};
 
 function distance(x1,y1,x2,y2){return Math.hypot(x1-x2,y1-y2);}
 
-function rectPixelCollision(r,s){
-  const minX = Math.max(r.x, s.x);
-  const minY = Math.max(r.y, s.y);
-  const maxX = Math.min(r.x+r.w, s.x+s.w);
-  const maxY = Math.min(r.y+r.h, s.y+s.h);
-  if(minX>=maxX||minY>=maxY) return false;
+function pixelPerfectCollision(a, b) {
+  // Bereken overlapgebied
+  const xMin = Math.max(a.x, b.x);
+  const yMin = Math.max(a.y, b.y);
+  const xMax = Math.min(a.x + a.w, b.x + b.w);
+  const yMax = Math.min(a.y + a.h, b.y + b.h);
 
-  const w=maxX-minX, h=maxY-minY;
-  const off = document.createElement('canvas');
-  off.width = w; off.height = h;
-  const octx = off.getContext('2d');
+  const w = xMax - xMin;
+  const h = yMax - yMin;
 
-  octx.drawImage(images.smiley, r.x + (minX - r.x), r.y + (minY - r.y), w, h,
-                0, 0, w, h);
-  const imgA = octx.getImageData(0,0,w,h).data;
+  if (w <= 0 || h <= 0) return false; // geen overlap
 
-  octx.clearRect(0,0,w,h);
-  octx.drawImage(images.poop, s.x + (minX - s.x), s.y + (minY - s.y), w, h,
-                0, 0, w, h);
-  const imgB = octx.getImageData(0,0,w,h).data;
+  // Maak een kleine offscreen canvas
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
 
-  for(let i=3; i<imgA.length; i+=4){
-    if(imgA[i]!==0 && imgB[i]!==0) return true;
+  // Teken eerst afbeelding A
+  ctx.clearRect(0, 0, w, h);
+  ctx.drawImage(images.smiley, a.x - xMin, a.y - yMin, a.w, a.h);
+  const dataA = ctx.getImageData(0, 0, w, h).data;
+
+  // Teken afbeelding B erbovenop met compositing
+  ctx.globalCompositeOperation = "source-in";
+  ctx.clearRect(0, 0, w, h);
+  ctx.drawImage(images.poop, b.x - xMin, b.y - yMin, b.w, b.h);
+  const dataB = ctx.getImageData(0, 0, w, h).data;
+
+  // Controleer op enige niet-transparante pixel
+  for (let i = 3; i < dataA.length; i += 4) {
+    if (dataA[i] !== 0 && dataB[i] !== 0) return true;
   }
   return false;
 }
