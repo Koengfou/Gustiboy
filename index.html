@@ -83,7 +83,7 @@ function checkCollisions(){
   if(distance(player.x+player.w/2, player.y+player.h/2,
     centerCircle.x, centerCircle.y) < centerCircle.radius + player.w/2) return true;
   for(const p of poopObstacles){
-    if(rectPixelCollision(player,p)) return true;
+   if (pixelPerfectCollision(player, p)) return true;
   }
   return false;
 }
