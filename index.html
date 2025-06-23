@@ -44,47 +44,57 @@ const centerCircle={x:canvas.width/2,y:canvas.height/2,radius:50};
 function distance(x1,y1,x2,y2){return Math.hypot(x1-x2,y1-y2);}
 
 function pixelPerfectCollision(a, b) {
-  // Bereken overlapgebied
   const xMin = Math.max(a.x, b.x);
   const yMin = Math.max(a.y, b.y);
   const xMax = Math.min(a.x + a.w, b.x + b.w);
   const yMax = Math.min(a.y + a.h, b.y + b.h);
-
   const w = xMax - xMin;
   const h = yMax - yMin;
 
-  if (w <= 0 || h <= 0) return false; // geen overlap
+  if (w <= 0 || h <= 0) return false;
+  if (!images.smiley || !images.poop) return false;
 
-  // Maak een kleine offscreen canvas
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
+  try {
+    const offCanvas = document.createElement("canvas");
+    offCanvas.width = w;
+    offCanvas.height = h;
+    const octx = offCanvas.getContext("2d");
 
-  // Teken eerst afbeelding A
-  ctx.clearRect(0, 0, w, h);
-  ctx.drawImage(images.smiley, a.x - xMin, a.y - yMin, a.w, a.h);
-  const dataA = ctx.getImageData(0, 0, w, h).data;
+    octx.clearRect(0, 0, w, h);
+    octx.drawImage(images.smiley, a.x - xMin, a.y - yMin, a.w, a.h);
+    const dataA = octx.getImageData(0, 0, w, h).data;
 
-  // Teken afbeelding B erbovenop met compositing
-  ctx.globalCompositeOperation = "source-in";
-  ctx.clearRect(0, 0, w, h);
-  ctx.drawImage(images.poop, b.x - xMin, b.y - yMin, b.w, b.h);
-  const dataB = ctx.getImageData(0, 0, w, h).data;
+    octx.clearRect(0, 0, w, h);
+    octx.drawImage(images.poop, b.x - xMin, b.y - yMin, b.w, b.h);
+    const dataB = octx.getImageData(0, 0, w, h).data;
 
-  // Controleer op enige niet-transparante pixel
-  for (let i = 3; i < dataA.length; i += 4) {
-    if (dataA[i] !== 0 && dataB[i] !== 0) return true;
+    for (let i = 3; i < dataA.length; i += 4) {
+      if (dataA[i] !== 0 && dataB[i] !== 0) return true;
+    }
+  } catch (err) {
+    console.warn("Pixel collision error:", err);
+    return false;
   }
+
   return false;
 }
 
 function checkCollisions(){
-  if(distance(player.x+player.w/2, player.y+player.h/2,
-    centerCircle.x, centerCircle.y) < centerCircle.radius + player.w/2) return true;
-  for(const p of poopObstacles){
-   if (pixelPerfectCollision(player, p)) return true;
+  const playerCenterX = player.x + player.w / 2;
+  const playerCenterY = player.y + player.h / 2;
+
+  if (distance(playerCenterX, playerCenterY, centerCircle.x, centerCircle.y) < centerCircle.radius + player.w / 2) {
+    return true;
   }
+
+  for (const p of poopObstacles) {
+    const overlaps = player.x < p.x + p.w &&
+                     player.x + player.w > p.x &&
+                     player.y < p.y + p.h &&
+                     player.y + player.h > p.y;
+    if (overlaps && pixelPerfectCollision(player, p)) return true;
+  }
+
   return false;
 }
 
