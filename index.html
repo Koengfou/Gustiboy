@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Top-Down Game</title>
+  <title>Smiley Top-Down</title>
   <style>
     html, body {
       margin: 0;
@@ -20,7 +20,7 @@
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="850" height="600"></canvas>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
@@ -30,58 +30,49 @@
     document.addEventListener("keyup", e => keys[e.key] = false);
 
     const player = {
-      x: 100,
-      y: 100,
-      width: 32,
-      height: 32,
-      speed: 2,
-      color: "lime"
-    };
-
-    const wall = {
-      x: 300,
-      y: 200,
-      width: 200,
-      height: 50,
-      color: "crimson"
+      x: canvas.width / 2 - 20,
+      y: canvas.height - 60,
+      width: 40,
+      height: 40,
+      speed: 3,
+      verticalSpeed: 1,
+      emoji: "😊"
     };
 
     function movePlayer() {
-      let newX = player.x;
-      let newY = player.y;
-
-      if (keys["ArrowUp"] || keys["w"]) newY -= player.speed;
-      if (keys["ArrowDown"] || keys["s"]) newY += player.speed;
-      if (keys["ArrowLeft"] || keys["a"]) newX -= player.speed;
-      if (keys["ArrowRight"] || keys["d"]) newX += player.speed;
-
-      if (!checkCollision(newX, newY)) {
-        player.x = newX;
-        player.y = newY;
+      if (keys["ArrowLeft"] || keys["a"]) {
+        player.x -= player.speed;
       }
+      if (keys["ArrowRight"] || keys["d"]) {
+        player.x += player.speed;
+      }
+
+      // Automatisch naar boven
+      player.y -= player.verticalSpeed;
+
+      // Teleport naar onderaan als buiten scherm
+      if (player.y + player.height < 0) {
+        player.y = canvas.height;
+      }
+
+      // Links/rechts grenzen
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width)
+        player.x = canvas.width - player.width;
     }
 
-    function checkCollision(x, y) {
-      return (
-        x < wall.x + wall.width &&
-        x + player.width > wall.x &&
-        y < wall.y + wall.height &&
-        y + player.height > wall.y
-      );
-    }
-
-    function drawRect(obj) {
-      ctx.fillStyle = obj.color;
-      ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+    function drawPlayer() {
+      ctx.font = "32px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(player.emoji, player.x + player.width / 2, player.y + player.height / 2);
     }
 
     function gameLoop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       movePlayer();
-
-      drawRect(wall);
-      drawRect(player);
+      drawPlayer();
 
       requestAnimationFrame(gameLoop);
     }
